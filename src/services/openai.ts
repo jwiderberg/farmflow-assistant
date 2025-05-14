@@ -27,7 +27,7 @@ export const getAIResponse = async (message: string, language: 'en' | 'ar', imag
         'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: 'gpt-4',
+        model: imageData ? 'gpt-4-vision-preview' : 'gpt-4',
         messages: [
           {
             role: 'system',
@@ -41,7 +41,7 @@ export const getAIResponse = async (message: string, language: 'en' | 'ar', imag
             ] : message
           }
         ],
-        max_tokens: 500
+        max_tokens: 1000
       })
     });
     
