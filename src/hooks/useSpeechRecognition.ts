@@ -28,7 +28,13 @@ const useSpeechRecognition = () => {
       };
       
       recognitionRef.current.onerror = (event) => {
-        setError(`Speech recognition error: ${event.error}`);
+        let errorMessage = `Speech recognition error: ${event.error}`;
+        if (event.error === 'language-not-supported') {
+          errorMessage = language.startsWith('ar') 
+            ? 'عذراً، التعرف على الكلام غير متوفر باللغة العربية في هذا المتصفح'
+            : 'Sorry, speech recognition is not available in Arabic for this browser';
+        }
+        setError(errorMessage);
         setIsListening(false);
       };
       
@@ -52,6 +58,7 @@ const useSpeechRecognition = () => {
     
     if (recognitionRef.current) {
       try {
+        recognitionRef.current.lang = language;
         recognitionRef.current.start();
         setIsListening(true);
       } catch (err) {
@@ -59,7 +66,7 @@ const useSpeechRecognition = () => {
         console.error(err);
       }
     }
-  }, []);
+  }, [language]);
   
   const stopListening = useCallback(() => {
     if (recognitionRef.current && isListening) {
