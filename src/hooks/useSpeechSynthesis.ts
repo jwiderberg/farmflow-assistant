@@ -1,27 +1,15 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 
 const useSpeechSynthesis = () => {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [language, setLanguage] = useState('en-US');
-  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   
   const speechSynthesisAvailable = 'speechSynthesis' in window;
   
-  useEffect(() => {
-    if (speechSynthesisAvailable) {
-      const updateVoices = () => {
-        setVoices(window.speechSynthesis.getVoices());
-      };
-      
-      window.speechSynthesis.onvoiceschanged = updateVoices;
-      updateVoices();
-      
-      return () => {
-        window.speechSynthesis.onvoiceschanged = null;
-      };
-    }
-  }, [speechSynthesisAvailable]);
+  if (!speechSynthesisAvailable) {
+    setError('Speech synthesis is not supported in this browser.');
+  }
   
   const speak = useCallback((text: string) => {
     if (!speechSynthesisAvailable) {
@@ -36,19 +24,6 @@ const useSpeechSynthesis = () => {
     }
     
     const utterance = new SpeechSynthesisUtterance(text);
-    
-    // Find appropriate voice for the language
-    const isArabic = language.startsWith('ar');
-    let voice = voices.find(v => v.lang.startsWith(isArabic ? 'ar' : 'en'));
-    
-    if (!voice && isArabic) {
-      // Fallback to any Arabic voice
-      voice = voices.find(v => v.lang.startsWith('ar'));
-    }
-    
-    if (voice) {
-      utterance.voice = voice;
-    }
     utterance.lang = language;
     
     utterance.onstart = () => {
@@ -60,15 +35,12 @@ const useSpeechSynthesis = () => {
     };
     
     utterance.onerror = (event) => {
-      const errorMessage = isArabic
-        ? 'عذراً، حدث خطأ أثناء التحدث'
-        : `Speech synthesis error: ${event.error}`;
-      setError(errorMessage);
+      setError(`Speech synthesis error: ${event.error}`);
       setIsSpeaking(false);
     };
     
     window.speechSynthesis.speak(utterance);
-  }, [speechSynthesisAvailable, language, voices]);
+  }, [speechSynthesisAvailable, language]);
   
   const cancel = useCallback(() => {
     if (speechSynthesisAvailable && window.speechSynthesis.speaking) {
