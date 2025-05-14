@@ -25,7 +25,7 @@ const useSpeechRecognition = () => {
         setHasMicrophonePermission(true);
       } catch (err) {
         setHasMicrophonePermission(false);
-        const errorMessage = language === 'ar-SA'
+        const errorMessage = language.startsWith('ar')
           ? 'لم يتم منح إذن الوصول إلى الميكروفون'
           : 'Microphone permission not granted';
         setError(errorMessage);
@@ -39,27 +39,31 @@ const useSpeechRecognition = () => {
   
   useEffect(() => {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-      const errorMessage = language === 'ar-SA'
+      const errorMessage = language.startsWith('ar')
         ? 'التعرف على الكلام غير مدعوم في هذا المتصفح'
         : 'Speech recognition is not supported in this browser.';
       setError(errorMessage);
       return;
     }
-    
-    const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
-    
-    // Create a new instance when language changes
+
+    // Clean up previous instance
     if (recognitionRef.current) {
-      recognitionRef.current.stop();
+      recognitionRef.current.onresult = null;
+      recognitionRef.current.onerror = null;
+      recognitionRef.current.onend = null;
+      recognitionRef.current.abort();
       recognitionRef.current = null;
     }
     
+    const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
     recognitionRef.current = new SpeechRecognitionAPI();
     
     if (recognitionRef.current) {
+      // Set the correct language code for Arabic
+      const langCode = language.startsWith('ar') ? 'ar-SA' : 'en-US';
       recognitionRef.current.continuous = false;
       recognitionRef.current.interimResults = false;
-      recognitionRef.current.lang = language;
+      recognitionRef.current.lang = langCode;
       
       recognitionRef.current.onresult = (event) => {
         const transcript = event.results[0][0].transcript;
@@ -68,13 +72,22 @@ const useSpeechRecognition = () => {
       
       recognitionRef.current.onerror = (event) => {
         let errorMessage = `Speech recognition error: ${event.error}`;
-        if (language === 'ar-SA') {
-          if (event.error === 'no-speech') {
-            errorMessage = 'لم يتم اكتشاف أي كلام';
-          } else if (event.error === 'network') {
-            errorMessage = 'خطأ في الشبكة';
-          } else if (event.error === 'not-allowed') {
-            errorMessage = 'لم يتم السماح باستخدام الميكروفون';
+        if (language.startsWith('ar')) {
+          switch (event.error) {
+            case 'no-speech':
+              errorMessage = 'لم يتم اكتشاف أي كلام';
+              break;
+            case 'network':
+              errorMessage = 'خطأ في الشبكة';
+              break;
+            case 'not-allowed':
+              errorMessage = 'لم يتم السماح باستخدام الميكروفون';
+              break;
+            case 'aborted':
+              errorMessage = 'تم إيقاف التسجيل';
+              break;
+            default:
+              errorMessage = 'حدث خطأ في التعرف على الكلام';
           }
         }
         setError(errorMessage);
@@ -91,10 +104,12 @@ const useSpeechRecognition = () => {
         recognitionRef.current.onresult = null;
         recognitionRef.current.onerror = null;
         recognitionRef.current.onend = null;
-        recognitionRef.current.abort();
+        if (isListening) {
+          recognitionRef.current.abort();
+        }
       }
     };
-  }, [language]);
+  }, [language, isListening]);
   
   const startListening = useCallback(async () => {
     if (!hasMicrophonePermission) {
@@ -112,7 +127,7 @@ const useSpeechRecognition = () => {
         recognitionRef.current.start();
         setIsListening(true);
       } catch (err) {
-        const errorMessage = language === 'ar-SA' 
+        const errorMessage = language.startsWith('ar')
           ? 'فشل في بدء التعرف على الكلام'
           : 'Failed to start speech recognition';
         setError(errorMessage);
