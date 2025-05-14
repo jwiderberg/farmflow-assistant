@@ -136,7 +136,7 @@ const VoiceAssistant: React.FC = () => {
       <header className="bg-white p-4 shadow-sm border-b border-gray-200">
         <div className="flex justify-between items-center">
           <h1 className="text-xl font-medium text-gray-800">
-            {language === 'en' ? 'Voice Assistant' : 'المساعد الصوتي'}
+            {language === 'en' ? 'Farming Assistant' : 'المساعد الصوتي'}
           </h1>
           <div className="flex items-center gap-2">
             <CameraCapture onCapture={handleImageCapture} language={language} />
