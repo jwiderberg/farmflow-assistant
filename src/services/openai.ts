@@ -6,14 +6,12 @@ export const getAIResponse = async (message: string, language: 'en' | 'ar', imag
   const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
   
   if (!apiKey) {
-    throw new Error(language === 'en' 
-      ? 'OpenAI API key is missing. Please add it to your .env file.'
-      : 'مفتاح API الخاص بـ OpenAI مفقود. يرجى إضافته إلى ملف .env الخاص بك.');
+    throw new Error('OpenAI API key is missing. Please add it to your .env file.');
   }
 
-  const systemMessage = language === 'en'
-    ? `You are an expert on crops and farming in Kuwait, with detailed knowledge on soil, watering, growing season and maximizing yields for different types of crops. If the user asks you questions about anything not related to crops and farming in Kuwait, kindly remind them of your area of expertise and suggest they use Google instead. ALWAYS respond in English.`
-    : `أنت خبير في المحاصيل والزراعة في الكويت، ولديك معرفة تفصيلية بالتربة والري ومواسم الزراعة وتعظيم المحاصيل لمختلف أنواع المحاصيل. إذا سألك المستخدم أسئلة عن أي شيء لا يتعلق بالمحاصيل والزراعة في الكويت، فذكره بلطف بمجال خبرتك واقترح عليه استخدام Google بدلاً من ذلك. قم دائمًا بالرد باللغة العربية.`;
+  const systemMessage = `You are an expert on crops and farming in Kuwait, with detailed knowledge on soil, watering, growing season and maximizing yields for different types of crops. ${
+    imageData ? 'When analyzing images, focus on identifying plants, soil conditions, signs of disease or pest problems, and provide specific recommendations for Kuwait\'s climate.' : ''
+  } If the user asks you questions about anything not related to crops and farming in Kuwait, kindly remind them of your area of expertise and suggest they use Google instead. ALWAYS respond in ${language === 'en' ? 'English' : 'Arabic'} regardless of the input language.`;
   
   try {
     const response = await fetch(OPENAI_API_URL, {
@@ -23,7 +21,7 @@ export const getAIResponse = async (message: string, language: 'en' | 'ar', imag
         'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: 'gpt-4',
+        model: 'gpt-4o',
         messages: [
           {
             role: 'system',
@@ -31,18 +29,19 @@ export const getAIResponse = async (message: string, language: 'en' | 'ar', imag
           },
           {
             role: 'user',
-            content: message
+            content: imageData ? [
+              { type: 'text', text: message },
+              { type: 'image_url', image_url: { url: imageData } }
+            ] : message
           }
         ],
-        max_tokens: 1000
+        max_tokens: 150
       })
     });
     
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(language === 'en'
-        ? errorData.error?.message || 'Failed to get response from OpenAI'
-        : errorData.error?.message || 'فشل في الحصول على رد من OpenAI');
+      throw new Error(errorData.error?.message || 'Failed to get response from OpenAI');
     }
     
     const data: OpenAIResponse = await response.json();
@@ -50,12 +49,8 @@ export const getAIResponse = async (message: string, language: 'en' | 'ar', imag
     
   } catch (error) {
     if (error instanceof Error) {
-      throw new Error(language === 'en'
-        ? `OpenAI API error: ${error.message}`
-        : `خطأ في واجهة برمجة تطبيقات OpenAI: ${error.message}`);
+      throw new Error(`OpenAI API error: ${error.message}`);
     }
-    throw new Error(language === 'en'
-      ? 'Unknown error occurred while calling OpenAI API'
-      : 'حدث خطأ غير معروف أثناء الاتصال بواجهة برمجة تطبيقات OpenAI');
+    throw new Error('Unknown error occurred while calling OpenAI API');
   }
 };
