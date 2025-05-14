@@ -15,6 +15,13 @@ const useSpeechRecognition = () => {
     }
     
     const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+    
+    // Create a new instance when language changes
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      recognitionRef.current = null;
+    }
+    
     recognitionRef.current = new SpeechRecognitionAPI();
     
     if (recognitionRef.current) {
@@ -28,7 +35,17 @@ const useSpeechRecognition = () => {
       };
       
       recognitionRef.current.onerror = (event) => {
-        setError(`Speech recognition error: ${event.error}`);
+        let errorMessage = `Speech recognition error: ${event.error}`;
+        if (language === 'ar-SA') {
+          if (event.error === 'no-speech') {
+            errorMessage = 'لم يتم اكتشاف أي كلام';
+          } else if (event.error === 'network') {
+            errorMessage = 'خطأ في الشبكة';
+          } else if (event.error === 'not-allowed') {
+            errorMessage = 'لم يتم السماح باستخدام الميكروفون';
+          }
+        }
+        setError(errorMessage);
         setIsListening(false);
       };
       
@@ -42,6 +59,7 @@ const useSpeechRecognition = () => {
         recognitionRef.current.onresult = null;
         recognitionRef.current.onerror = null;
         recognitionRef.current.onend = null;
+        recognitionRef.current.abort();
       }
     };
   }, [language]);
@@ -55,11 +73,14 @@ const useSpeechRecognition = () => {
         recognitionRef.current.start();
         setIsListening(true);
       } catch (err) {
-        setError('Failed to start speech recognition');
+        const errorMessage = language === 'ar-SA' 
+          ? 'فشل في بدء التعرف على الكلام'
+          : 'Failed to start speech recognition';
+        setError(errorMessage);
         console.error(err);
       }
     }
-  }, []);
+  }, [language]);
   
   const stopListening = useCallback(() => {
     if (recognitionRef.current && isListening) {

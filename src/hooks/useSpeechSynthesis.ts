@@ -13,7 +13,10 @@ const useSpeechSynthesis = () => {
   
   const speak = useCallback((text: string) => {
     if (!speechSynthesisAvailable) {
-      setError('Speech synthesis is not supported in this browser.');
+      const errorMessage = language === 'ar-SA'
+        ? 'خاصية تحويل النص إلى كلام غير مدعومة في هذا المتصفح'
+        : 'Speech synthesis is not supported in this browser.';
+      setError(errorMessage);
       return;
     }
     
@@ -26,6 +29,17 @@ const useSpeechSynthesis = () => {
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = language;
     
+    // Find an appropriate voice for Arabic
+    if (language === 'ar-SA') {
+      const voices = window.speechSynthesis.getVoices();
+      const arabicVoice = voices.find(voice => 
+        voice.lang.startsWith('ar') || voice.lang === 'ar-SA'
+      );
+      if (arabicVoice) {
+        utterance.voice = arabicVoice;
+      }
+    }
+    
     utterance.onstart = () => {
       setIsSpeaking(true);
     };
@@ -35,7 +49,10 @@ const useSpeechSynthesis = () => {
     };
     
     utterance.onerror = (event) => {
-      setError(`Speech synthesis error: ${event.error}`);
+      const errorMessage = language === 'ar-SA'
+        ? `خطأ في تحويل النص إلى كلام: ${event.error}`
+        : `Speech synthesis error: ${event.error}`;
+      setError(errorMessage);
       setIsSpeaking(false);
     };
     
