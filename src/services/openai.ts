@@ -12,12 +12,8 @@ export const getAIResponse = async (message: string, language: 'en' | 'ar', imag
   }
 
   const systemMessage = language === 'en'
-    ? `You are an expert on crops and farming in Kuwait, with detailed knowledge on soil, watering, growing season and maximizing yields for different types of crops. ${
-      imageData ? 'When analyzing images, focus on identifying plants, soil conditions, signs of disease or pest problems, and provide specific recommendations for Kuwait\'s climate.' : ''
-    } If the user asks you questions about anything not related to crops and farming in Kuwait, kindly remind them of your area of expertise and suggest they use Google instead. ALWAYS respond in English.`
-    : `أنت خبير في المحاصيل والزراعة في الكويت، ولديك معرفة تفصيلية بالتربة والري ومواسم الزراعة وتعظيم المحاصيل لمختلف أنواع المحاصيل. ${
-      imageData ? 'عند تحليل الصور، ركز على تحديد النباتات وظروف التربة وعلامات الأمراض أو مشاكل الآفات، وقدم توصيات محددة لمناخ الكويت.' : ''
-    } إذا سألك المستخدم أسئلة عن أي شيء لا يتعلق بالمحاصيل والزراعة في الكويت، فذكره بلطف بمجال خبرتك واقترح عليه استخدام Google بدلاً من ذلك. قم دائمًا بالرد باللغة العربية.`;
+    ? `You are an expert on crops and farming in Kuwait, with detailed knowledge on soil, watering, growing season and maximizing yields for different types of crops. If the user asks you questions about anything not related to crops and farming in Kuwait, kindly remind them of your area of expertise and suggest they use Google instead. ALWAYS respond in English.`
+    : `أنت خبير في المحاصيل والزراعة في الكويت، ولديك معرفة تفصيلية بالتربة والري ومواسم الزراعة وتعظيم المحاصيل لمختلف أنواع المحاصيل. إذا سألك المستخدم أسئلة عن أي شيء لا يتعلق بالمحاصيل والزراعة في الكويت، فذكره بلطف بمجال خبرتك واقترح عليه استخدام Google بدلاً من ذلك. قم دائمًا بالرد باللغة العربية.`;
   
   try {
     const response = await fetch(OPENAI_API_URL, {
@@ -27,7 +23,7 @@ export const getAIResponse = async (message: string, language: 'en' | 'ar', imag
         'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: imageData ? 'gpt-4-vision-preview' : 'gpt-4',
+        model: 'gpt-4',
         messages: [
           {
             role: 'system',
@@ -35,10 +31,7 @@ export const getAIResponse = async (message: string, language: 'en' | 'ar', imag
           },
           {
             role: 'user',
-            content: imageData ? [
-              { type: 'text', text: message },
-              { type: 'image_url', image_url: { url: imageData } }
-            ] : message
+            content: message
           }
         ],
         max_tokens: 1000
