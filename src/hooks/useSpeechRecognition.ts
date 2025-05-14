@@ -7,6 +7,22 @@ const useSpeechRecognition = () => {
   const [language, setLanguage] = useState('en-US');
   
   const recognitionRef = useRef<SpeechRecognition | null>(null);
+
+  const checkMicrophonePermission = async (): Promise<boolean> => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach(track => track.stop());
+      return true;
+    } catch (error) {
+      if (error instanceof Error) {
+        const errorMessage = language === 'ar-SA'
+          ? 'لم يتم السماح باستخدام الميكروفون. يرجى منح الإذن في إعدادات المتصفح.'
+          : 'Microphone access denied. Please allow microphone access in your browser settings.';
+        setError(errorMessage);
+      }
+      return false;
+    }
+  };
   
   useEffect(() => {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
@@ -64,9 +80,14 @@ const useSpeechRecognition = () => {
     };
   }, [language]);
   
-  const startListening = useCallback(() => {
+  const startListening = useCallback(async () => {
     setError(null);
     setTranscript('');
+    
+    const hasMicrophoneAccess = await checkMicrophonePermission();
+    if (!hasMicrophoneAccess) {
+      return;
+    }
     
     if (recognitionRef.current) {
       try {
