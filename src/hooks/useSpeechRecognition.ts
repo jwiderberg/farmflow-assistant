@@ -5,12 +5,44 @@ const useSpeechRecognition = () => {
   const [transcript, setTranscript] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [language, setLanguage] = useState('en-US');
+  const [hasMicrophonePermission, setHasMicrophonePermission] = useState<boolean | null>(null);
   
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   
+  const checkMicrophonePermission = async () => {
+    try {
+      const result = await navigator.permissions.query({ name: 'microphone' as PermissionName });
+      setHasMicrophonePermission(result.state === 'granted');
+      
+      result.addEventListener('change', () => {
+        setHasMicrophonePermission(result.state === 'granted');
+      });
+    } catch (error) {
+      // Fallback to getUserMedia for browsers that don't support permissions API
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        stream.getTracks().forEach(track => track.stop());
+        setHasMicrophonePermission(true);
+      } catch (err) {
+        setHasMicrophonePermission(false);
+        const errorMessage = language === 'ar-SA'
+          ? 'لم يتم منح إذن الوصول إلى الميكروفون'
+          : 'Microphone permission not granted';
+        setError(errorMessage);
+      }
+    }
+  };
+
+  useEffect(() => {
+    checkMicrophonePermission();
+  }, []);
+  
   useEffect(() => {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-      setError('Speech recognition is not supported in this browser.');
+      const errorMessage = language === 'ar-SA'
+        ? 'التعرف على الكلام غير مدعوم في هذا المتصفح'
+        : 'Speech recognition is not supported in this browser.';
+      setError(errorMessage);
       return;
     }
     
@@ -64,7 +96,14 @@ const useSpeechRecognition = () => {
     };
   }, [language]);
   
-  const startListening = useCallback(() => {
+  const startListening = useCallback(async () => {
+    if (!hasMicrophonePermission) {
+      await checkMicrophonePermission();
+      if (!hasMicrophonePermission) {
+        return;
+      }
+    }
+
     setError(null);
     setTranscript('');
     
@@ -80,7 +119,7 @@ const useSpeechRecognition = () => {
         console.error(err);
       }
     }
-  }, [language]);
+  }, [language, hasMicrophonePermission]);
   
   const stopListening = useCallback(() => {
     if (recognitionRef.current && isListening) {
@@ -95,7 +134,8 @@ const useSpeechRecognition = () => {
     error,
     startListening,
     stopListening,
-    setLanguage
+    setLanguage,
+    hasMicrophonePermission
   };
 };
 
